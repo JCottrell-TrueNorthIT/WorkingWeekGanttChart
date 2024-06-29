@@ -1,34 +1,28 @@
 {
     "dataRoles": [
         {
-            "displayName": "Category Data",
-            "name": "category",
+            "displayName": "Task",
+            "name": "category-task",
             "kind": "Grouping"
         },
         {
-            "displayName": "Measure Data",
-            "name": "measure",
+            "displayName": "Duration",
+            "name": "measure-duration",
             "kind": "Measure"
         }
     ],
     "objects": {
-        "dataPoint": {
+        "enableAxis": {
+            "displayName": "Enable Axis",
             "properties": {
-                "defaultColor": {
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "showAllDataPoints": {
+                "show": {
+                    "displayName": "Show",
                     "type": {
                         "bool": true
                     }
                 },
                 "fill": {
+                    "displayName": "Fill",
                     "type": {
                         "fill": {
                             "solid": {
@@ -36,16 +30,19 @@
                             }
                         }
                     }
-                },
-                "fillRule": {
+                }
+            }
+        },
+        "colorSelector": {
+            "displayName": "Color",
+            "properties": {
+                "fill": {
+                    "displayName": "Fill",
                     "type": {
-                        "fill": {}
-                    }
-                },
-                 "fontSize": {
-                    "type": {
-                        "formatting": {
-                            "fontSize": true
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
                         }
                     }
                 }
@@ -54,10 +51,22 @@
     },
     "dataViewMappings": [
         {
+            "conditions": [
+                {
+                    "category-task":{
+                        "max": 1
+                    }
+                },
+                {
+                    "measure-duration": {
+                        "max": 1
+                    }
+                }
+            ],
             "categorical": {
                 "categories": {
                     "for": {
-                        "in": "category"
+                        "in": "category-task"
                     },
                     "dataReductionAlgorithm": {
                         "top": {}
@@ -67,7 +76,7 @@
                     "select": [
                         {
                             "bind": {
-                                "to": "measure"
+                                "to": "measure-duration"
                             }
                         }
                     ]
