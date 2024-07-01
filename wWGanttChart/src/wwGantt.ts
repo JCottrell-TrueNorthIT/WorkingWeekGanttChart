@@ -19,125 +19,16 @@ import powerbi from "powerbi-visuals-api";
 
 type Selection<T extends BaseType> = d3Selection<T, any, any, any>;
 
-// powerbi.visuals
-import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
-import Fill = powerbi.Fill;
-import ISandboxExtendedColorPalette = powerbi.extensibility.ISandboxExtendedColorPalette;
-import ISelectionId = powerbi.visuals.ISelectionId;
 import IVisual = powerbi.extensibility.IVisual;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
-import PrimitiveValue = powerbi.PrimitiveValue;
-import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
-import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 
 import { textMeasurementService } from "powerbi-visuals-utils-formattingutils";
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
 
 import { WWGanttChartSettingsModel } from "./wwGanttChartSettingsModel";
-import { dataViewObjects} from "powerbi-visuals-utils-dataviewutils";
-
-export interface WWGanttDatapoint {
-    value: PrimitiveValue;
-    category: string;
-    color: string;
-    strokeColor: string;
-    strokeWidth: number;
-    selectionId: ISelectionId;
-}
-
-function getColumnColorByIndex(
-    category: DataViewCategoryColumn,
-    index: number,
-    colorPalette: ISandboxExtendedColorPalette,
-): string {
-    if (colorPalette.isHighContrast) {
-        return colorPalette.background.value;
-    }
-
-    const defaultColor: Fill = {
-        solid: {
-            color: colorPalette.getColor(`${category.values[index]}`).value,
-        }
-    };
-
-    const prop: DataViewObjectPropertyIdentifier = {
-        objectName: "colorSelector",
-        propertyName: "fill"
-    };
-
-    let colorFromObjects: Fill;
-    if(category.objects?.[index]){
-        colorFromObjects = dataViewObjects.getValue(category?.objects[index], prop);
-    }
-
-    return colorFromObjects?.solid.color ?? defaultColor.solid.color;
-}
-
-function getColumnStrokeColor(colorPalette: ISandboxExtendedColorPalette): string {
-    return colorPalette.isHighContrast
-        ? colorPalette.foreground.value
-        : null;
-}
-
-function getColumnStrokeWidth(isHighContrast: boolean): number {
-    return isHighContrast
-        ? 2
-        : 0;
-}
-
-/**
- * Function that converts queried data into a viewmodel that will be used by the visual.
- *
- * @function
- * @param {VisualUpdateOptions} options - Contains references to the size of the container
- *                                        and the dataView which contains all the data
- *                                        the visual had queried.
- * @param {IVisualHost} host            - Contains references to the host which contains services
- */
-function createSelectorDataPoints(options: VisualUpdateOptions, host: IVisualHost): WWGanttDatapoint[] {
-    const wwGantDatapoints: WWGanttDatapoint[] = []
-    const dataViews = options.dataViews;
-
-    if (!dataViews
-        || !dataViews[0]
-        || !dataViews[0].categorical
-        || !dataViews[0].categorical.categories
-        || !dataViews[0].categorical.categories[0].source
-        || !dataViews[0].categorical.values
-    ) {
-        return wwGantDatapoints;
-    }
-
-    const categorical = dataViews[0].categorical;
-    const category = categorical.categories[0];
-    const dataValue = categorical.values[0];
-
-    const colorPalette: ISandboxExtendedColorPalette = host.colorPalette;
-
-    const strokeColor: string = getColumnStrokeColor(colorPalette);
-
-    const strokeWidth: number = getColumnStrokeWidth(colorPalette.isHighContrast);
-
-    for (let i = 0, len = Math.max(category.values.length, dataValue.values.length); i < len; i++) {
-        const color: string = getColumnColorByIndex(category, i, colorPalette);
-
-        const selectionId: ISelectionId = host.createSelectionIdBuilder()
-            .withCategory(category, i)
-            .createSelectionId();
-
-        wwGantDatapoints.push({
-            color,
-            strokeColor,
-            strokeWidth,
-            selectionId,
-            value: dataValue.values[i],
-            category: `${category.values[i]}`,
-        });
-    }
-
-    return wwGantDatapoints;
-}
+import { WWGanttDatapoint, createSelectorDataPoints } from "./wwGanttDatapoint";
 
 export class WWGanttChart implements IVisual {
     private svg: Selection<SVGSVGElement>;

@@ -1,5 +1,5 @@
 import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
-import { WWGanttDatapoint } from "./wwGantt";
+import { WWGanttDatapoint } from "./wwGanttDatapoint";
 
 import Card = formattingSettings.SimpleCard;
 import Model = formattingSettings.Model;

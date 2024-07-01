@@ -15,6 +15,7 @@
     },
     "files": [
         "./src/wwGantt.ts",
-        "./src/wwGanttChartSettingsModel.ts"
+        "./src/wwGanttChartSettingsModel.ts",
+        "./src/wwGanttDatapoint.ts"
     ]
 }
