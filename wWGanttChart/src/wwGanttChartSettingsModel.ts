@@ -17,7 +17,7 @@ class EnableAxisCardSettings extends Card {
     show = new ToggleSwitch({
         name: "show",
         displayName: undefined,
-        value: false,
+        value: true,
     });
 
     fill = new ColorPicker({

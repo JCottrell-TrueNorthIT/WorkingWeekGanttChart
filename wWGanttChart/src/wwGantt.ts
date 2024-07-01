@@ -82,6 +82,8 @@ export class WWGanttChart implements IVisual {
             options.viewport.width : 
             options.viewport.width - WWGanttChart.Config.margins.left;
 
+        const startX = this.formattingSettings.enableAxis.show.value ? WWGanttChart.Config.margins.left : 0;
+
         this.svg
             .attr("width", width)
             .attr("height", height);
@@ -92,7 +94,7 @@ export class WWGanttChart implements IVisual {
 
         const xScale: ScaleLinear<number, number> = scaleLinear()
             .domain([0, <number>options.dataViews[0].categorical.values[0].maxLocal])
-            .range([0, width]);
+            .range([startX, width]);
 
         const yScale: ScaleBand<string> = scaleBand()
             .domain(this.wwGanttDatapoints.map(d => d.task))
@@ -129,7 +131,7 @@ export class WWGanttChart implements IVisual {
         this.formattingSettings.populateColorSelector(this.wwGanttDatapoints, options, this.host);
     }
     
-    private setupBars(width: number, xScale: ScaleLinear<number, number>, yScale: ScaleBand<string>) {  
+    private setupBars(xScale: ScaleLinear<number, number>, yScale: ScaleBand<string>) {  
         this.barSelection = this.barContainer
             .selectAll('.bar')
             .data(this.wwGanttDatapoints);
@@ -148,20 +150,39 @@ export class WWGanttChart implements IVisual {
             .attr("height",  yScale.bandwidth())
             .attr("x", xScale(0))
             .attr("y", (dataPoint: WWGanttDatapoint) => yScale(dataPoint.task))
-            .text((dataPoint: WWGanttDatapoint) => dataPoint.task)
             .style("fill", getColor)
             .style("stroke", getColor)
             .style("stroke-width", `${strokeWidth}px`);
-        
+            const labelSelection = this.barContainer
+            .selectAll('.bar-label')
+            .data(this.wwGanttDatapoints);
+    
+        const labelSelectionMerged = labelSelection
+            .enter()
+            .append('text')
+            .attr('class', 'bar-label')
+            .merge(<any>labelSelection);
+    
+        labelSelectionMerged
+            .attr("x", xScale(0))
+            .attr("y", (dataPoint: WWGanttDatapoint) => yScale(dataPoint.task) + yScale.bandwidth() / 2)
+            .attr("dy", ".35em")
+            .attr("text-anchor", "start")
+            .text((dataPoint: WWGanttDatapoint) => dataPoint.task);
+    
         this.barSelection
+            .exit()
+            .remove();
+    
+        labelSelection
             .exit()
             .remove();
     }
 
     public update(options: VisualUpdateOptions) {
         this.initData(options);
-        const { width, xScale, yScale } = this.constructChart(options);   
-        this.setupBars(width, xScale, yScale);
+        const { xScale, yScale } = this.constructChart(options);   
+        this.setupBars(xScale, yScale);
     }
 
     private static wordBreak(
