@@ -23,6 +23,7 @@ import IVisual = powerbi.extensibility.IVisual;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
+import ISandboxExtendedColorPalette = powerbi.extensibility.ISandboxExtendedColorPalette;
 
 import { textMeasurementService } from "powerbi-visuals-utils-formattingutils";
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
@@ -73,22 +74,13 @@ export class WWGanttChart implements IVisual {
             .classed('xAxis', true);
     }
 
-    public update(options: VisualUpdateOptions) {
-        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(WWGanttChartSettingsModel, options.dataViews?.[0]);
-        this.wwGanttDatapoints = createSelectorDataPoints(options, this.host);
-        this.formattingSettings.populateColorSelector(this.wwGanttDatapoints);
-
+    private constructChart(options: VisualUpdateOptions) {
         const width = options.viewport.width;
-        let height = options.viewport.height;
+        const height = this.formattingSettings.enableAxis.show.value ? options.viewport.height : options.viewport.height - WWGanttChart.Config.margins.bottom;
 
         this.svg
             .attr("width", width)
             .attr("height", height);
-
-        if (this.formattingSettings.enableAxis.show.value) {
-            const margins = WWGanttChart.Config.margins;
-            height -= margins.bottom;
-        }
 
         this.xAxis
             .style("font-size", Math.min(height, width) * WWGanttChart.Config.xAxisFontMultiplier)
@@ -99,7 +91,7 @@ export class WWGanttChart implements IVisual {
             .range([height, 0]);
 
         const xScale: ScaleBand<string> = scaleBand()
-            .domain(this.wwGanttDatapoints.map(d => d.category))
+            .domain(this.wwGanttDatapoints.map(d => d.task))
             .rangeRound([0, width])
             .padding(0.2);
 
@@ -112,6 +104,25 @@ export class WWGanttChart implements IVisual {
         const textNodes: Selection<SVGElement> = this.xAxis.selectAll("text");
         WWGanttChart.wordBreak(textNodes, xScale.bandwidth(), height);
 
+        return { width, height, xScale, yScale };
+    }
+
+    private getBarGraphicData() {
+        const colorPalette: ISandboxExtendedColorPalette = this.host.colorPalette;
+        
+        const color: string = colorPalette.getColor("0").value;
+    
+        const strokeWidth: number = colorPalette.isHighContrast ? 2 : 0;
+        return {color, strokeWidth};
+    }
+
+    private initData(options: VisualUpdateOptions) {
+        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(WWGanttChartSettingsModel, options.dataViews?.[0]);
+        this.wwGanttDatapoints = createSelectorDataPoints(options);
+        this.formattingSettings.populateColorSelector(this.wwGanttDatapoints, options, this.host);
+    }
+    
+    private setupBars(height: number, xScale: ScaleBand<string>, yScale: ScaleLinear<number, number>) {  
         this.barSelection = this.barContainer
             .selectAll('.bar')
             .data(this.wwGanttDatapoints);
@@ -123,18 +134,26 @@ export class WWGanttChart implements IVisual {
 
         barSelectionMerged.classed('bar', true);
 
+        const {color, strokeWidth} = this.getBarGraphicData();
+
         barSelectionMerged
             .attr("width", xScale.bandwidth())
-            .attr("height", (dataPoint: WWGanttDatapoint) => height - yScale(<number>dataPoint.value))
-            .attr("y", (dataPoint: WWGanttDatapoint) => yScale(<number>dataPoint.value))
-            .attr("x", (dataPoint: WWGanttDatapoint) => xScale(dataPoint.category))
-            .style("fill", (dataPoint: WWGanttDatapoint) => dataPoint.color)
-            .style("stroke", (dataPoint: WWGanttDatapoint) => dataPoint.strokeColor)
-            .style("stroke-width", (dataPoint: WWGanttDatapoint) => `${dataPoint.strokeWidth}px`);
+            .attr("height", (dataPoint: WWGanttDatapoint) => height - yScale(<number>dataPoint.duration))
+            .attr("y", (dataPoint: WWGanttDatapoint) => yScale(<number>dataPoint.duration))
+            .attr("x", (dataPoint: WWGanttDatapoint) => xScale(dataPoint.task))
+            .style("fill", color)
+            .style("stroke", color)
+            .style("stroke-width", `${strokeWidth}px`);
 
         this.barSelection
             .exit()
             .remove();
+    }
+
+    public update(options: VisualUpdateOptions) {
+        this.initData(options);
+        const { height, xScale, yScale } = this.constructChart(options);   
+        this.setupBars(height, xScale, yScale);
     }
 
     private static wordBreak(

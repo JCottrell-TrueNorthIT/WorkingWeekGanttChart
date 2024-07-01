@@ -6,6 +6,9 @@ import Model = formattingSettings.Model;
 import Slice = formattingSettings.Slice;
 import ColorPicker = formattingSettings.ColorPicker;
 import ToggleSwitch = formattingSettings.ToggleSwitch;
+import IVisualHost = powerbi.extensibility.visual.IVisualHost;
+import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
+
 
 /**
  * Enable Axis Formatting Card
@@ -52,15 +55,35 @@ export class WWGanttChartSettingsModel extends Model {
      * populate colorSelector object categories formatting properties
      * @param dataPoints 
      */
-    populateColorSelector(dataPoints: WWGanttDatapoint[]) {
+    populateColorSelector(dataPoints: WWGanttDatapoint[], options: VisualUpdateOptions, host: IVisualHost) {
         const slices: Slice[] = this.colorSelector.slices;
+
+        const colorPalette = host.colorPalette;
+
+        const dataViews = options.dataViews;
+
+        if (!dataViews
+            || !dataViews[0]
+            || !dataViews[0].categorical
+            || !dataViews[0].categorical.categories
+            || !dataViews[0].categorical.categories[0].source
+            || !dataViews[0].categorical.values
+        ) {
+            return;
+        }
+    
+        const categorical = dataViews[0].categorical;
+        const category = categorical.categories[0];
+
         if (dataPoints) {
-            dataPoints.forEach(dataPoint => {
+            dataPoints.forEach((dataPoint, i) => {
                 slices.push(new ColorPicker({
                     name: "fill",
-                    displayName: dataPoint.category,
-                    value: { value: dataPoint.color },
-                    selector: dataPoint.selectionId.getSelector(),
+                    displayName: dataPoint.task,
+                    value: colorPalette.getColor(`${category.values[0]}`),
+                    selector: host.createSelectionIdBuilder()
+                        .withCategory(category, i)
+                        .createSelectionId().getSelector(),
                 }));
             });
         }
